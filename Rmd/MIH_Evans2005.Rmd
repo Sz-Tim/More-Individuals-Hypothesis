@@ -1,0 +1,25 @@
+---
+title: "Evans et al 2005"
+author: "Tim Szewczyk"
+date: "2017 April 12"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+subtitle: "Ideas based on relevant mechanisms for Evans et al 2005"
+---
+
+# Mechanisms  
+## Sampling  
+## Increased population size  
+## Dynamic equilibrium  
+## Niche position  
+## Niche breadth  
+## More trophic levels  
+## Consumer pressure  
+## Range limitation  
+## Diversification rate  
+# Confounding variables  
+## Area  
+## Seasonality  
+## Long-term stability  
