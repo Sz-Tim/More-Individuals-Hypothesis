@@ -21,7 +21,7 @@ These simulations quantify the effects of interannual stochasticity in a theoret
   
 ```{r setEnv, echo=FALSE, message=FALSE}
 mih.lib <- c("tidyverse", "data.table", "sevcheck", "abind", "plyr",
-             "foreach", "doParallel")
+             "foreach", "doParallel", "AICcmodavg")
 library(easypackages); libraries(mih.lib)
 theme_set(theme_bw()); registerDoParallel(makeCluster(4))
 source("../code/MIH_funcs.R")
@@ -66,7 +66,7 @@ N[1,,] <- K
 
 # simulation loop
 for(s in 1:nSim) {
-  N[,,s] <- rick.mod.stoch(nSpp, tMax, r, N[,,s], K, sd)
+  N[,,s] <- sevcheck::rick.stoch(nSpp, tMax, r, N[,,s], K, sd)
 }
 
 N.out <- summarize.out(N)
@@ -105,7 +105,7 @@ for(j in 1:nComm) {
   
   # simulation loop (parallel)
   N.ls <- foreach(s=1:nSim) %dopar% {
-    rick.mod.det(nSpp[j], tMax, r.c, N, K)
+    sevcheck::rick.det(nSpp[j], tMax, r.c, N, K)
   }
   N <- abind(N.ls, along=3)
 
@@ -145,7 +145,7 @@ With stochasticity incorporated into the growth rate for each species, the obser
 
 ```{r ExampMultiCommStoch, fig.height=10, fig.width=10}
 # set global structural parameters
-nSim <- 800
+nSim <- 20
 tMax <- 20
 nComm <- 30
 minS <- 5
@@ -174,7 +174,7 @@ for(j in 1:nComm) {
   
   # simulation loop (parallel)
   N.ls <- foreach(s=1:nSim) %dopar% {
-    rick.mod.stoch(nSpp[j], tMax, r.c, N, K, sd.c)
+    sevcheck::rick.stoch(nSpp[j], tMax, r.c, N, K, sd.c)
   }
   N <- abind(N.ls, along=3)
 
@@ -183,7 +183,7 @@ for(j in 1:nComm) {
 }
 
 # reformat list into a dataframe
-comm.df <- ldply(comm.ls, .id=NULL)
+comm.df <- ldply(comm.ls, .id=NULL) 
 
 # fit models
 out <- fit.mods(comm.df, tMax)
