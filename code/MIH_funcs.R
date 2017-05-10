@@ -3,22 +3,18 @@
 
 summarize.out <- function(N) {
   # N: array (dim=c(tMax, nSpp, nSim))
+  if(is.array(N)) {
+    N <- adply(N, 1:3) 
+    names(N.df) <- c("Year", "Species", "Simulation", "N")
+  }
   
-  require(plyr); require(data.table)
-  
-  N.df <- data.table(adply(N, 1:3))
-  names(N.df) <- c("Year", "Species", "Simulation", "N")
-  
-  N.comm <- N.df[, .(S=sum(N>0), 
-                     N.tot=sum(N), 
-                     N.noDom=sum(N)-max(N),
-                     N.Dom=max(N)),
-                by=.(Year, Simulation)]
+  N.comm <- N %>% 
+    group_by(Year, Simulation) %>% 
+    summarise(., S=sum(N>0), N.tot=sum(N), N.Dom=max(N), N.noDom=N.tot-N.Dom)
   N.comm$Year <- as.numeric(N.comm$Year)
   
-  return(list(N.df=N.df, N.comm=N.comm))
+  return(list(N.df=N, N.comm=N.comm))
 }
-
 
 
 
@@ -29,7 +25,6 @@ fit.mods <- function(comm.df, tMax) {
   # comm.df: ldply(comm.ls)
     # Year, Simulation, S, N.tot
   
-  require(dplyr); require(AICcmodavg)
   out.all <- data.table(Simulation=rep(1:nlevels(comm.df$Simulation), each=3), 
                     Model=c("Linear", "Log-Normal", "Quadratic"),
                     dAICc=NA)
