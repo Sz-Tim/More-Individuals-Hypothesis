@@ -10,7 +10,7 @@ subtitle: Simulation ideas based on relevant mechanisms from Evans et al 2005
 ---
 
 ```{r setEnv, echo=FALSE, message=FALSE}
-mih.lib <- c("plyr", "tidyverse", "data.table", "sevcheck", "abind",
+mih.lib <- c("plyr", "tidyverse", "sevcheck", "purrr", "forcats",
              "foreach", "doParallel", "AICcmodavg")
 library(easypackages); libraries(mih.lib); source("../code/MIH_funcs.R")
 theme_set(theme_bw()); registerDoParallel(makeCluster(4))
@@ -57,14 +57,14 @@ The sampling mechanism offers a plausible explanation for species–energy relat
 # - sample - certain percentage?
 
 ## Set model parameters
-nSim <- 1000
+nSim <- 2000
 tMax <- 20
 nSpp.r <- 50  # regional species pool
 NPP <- seq(10, 200, by=10)
 NPP.b <-100
 K.avg <- 100
 K.comm <- NPP*NPP.b + nSpp.r*K.avg  # Built-in effect of NPP on K.comm
-smp.p <- 0.3
+smp.p <- 0.5
 
 ## Set population growth parameters
 r.min <- 0.5  # min possible avg growth rate
@@ -87,8 +87,10 @@ for(j in 1:length(K.comm)) {
   N.ls <- foreach(s=1:nSim) %dopar% {
     tibble::as.tibble(sevcheck::rick.stoch(nSpp.r, tMax, r, N, K, sd))
   }
+  
+  # reshape output
   names(N.ls) <- 1:nSim
-  samp.ls[[j]] <- purrr::map(N.ls, mutate, Year=1:tMax) %>%
+  samp.ls[[j]] <- map(N.ls, mutate, Year=1:tMax) %>%
     ldply(.id="Simulation") %>% 
     as_tibble
   N.df <- gather(samp.ls[[j]], Species, N, 2:(length(samp.ls[[j]])-1))
@@ -100,17 +102,17 @@ for(j in 1:length(K.comm)) {
   # sample from output
   comm.ls[[j]]$S <- apply(samp.ls[[j]][,-c(1,length(samp.ls[[j]]))], 1, sample,
                           x=1:nSpp.r, size=round(K.j*smp.p), replace=TRUE) %>% 
-    apply(., 2, uniqueN)
+    apply(., 2, n_distinct)
 }
+
+# reshape stored output
 comm.tbl <- ldply(comm.ls, .id=NULL) %>% as_tibble %>%
   mutate(Sim=factor(Simulation, labels=paste("Sim.", 1:nSim))) 
 
 # fit models
-out <- fit.mods(comm.tbl, tMax)
-out$out.all %>% group_by(Model) %>% 
-  summarise(nBest=sum(BestMod), propBest=nBest/n())
-out$out.noDom %>% group_by(Model) %>% 
-  summarise(nBest=sum(BestMod), propBest=nBest/n())
+fit.mods(comm.tbl, tMax) %>%
+  map(group_by, Model) %>% 
+  map(summarise, nBest=sum(BestMod), propBest=nBest/n())
 
 # visualize
 ggplot(filter(comm.tbl, as.numeric(Simulation) < 65 & Year == 20), 

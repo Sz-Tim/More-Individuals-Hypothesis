@@ -24,13 +24,13 @@ summarize.out <- function(N) {
 fit.mods <- function(comm.df, tMax) {
   # comm.df: ldply(comm.ls)
     # Year, Simulation, S, N.tot
-  
-  out.all <- data.table(Simulation=rep(1:nlevels(comm.df$Simulation), each=3), 
-                    Model=c("Linear", "Log-Normal", "Quadratic"),
+  nSim <- nlevels(comm.df$Simulation)
+  out.all <- tibble(Simulation=rep(1:nSim, each=3), 
+                    Model=rep(c("Linear", "Log-Normal", "Quadratic"), nSim),
                     dAICc=NA)
   out.noDom <- out.all
   
-  for(s in 1:nlevels(comm.df$Simulation)) {
+  for(s in 1:nSim) {
     c.s <- droplevels(filter(comm.df, Simulation==s & Year==tMax))
     
     # all species
@@ -44,9 +44,9 @@ fit.mods <- function(comm.df, tMax) {
     out.all$BestMod <- out.all$dAICc==0
     
     # excluding the dominant species
-    lm.s <- lm(S ~ N.noDom, data=c.s)
-    ln.s <- lm(S ~ log(N.noDom), data=c.s)
-    qu.s <- lm(S ~ N.noDom + I(N.noDom^2), data=c.s)
+    lm.s <- update(lm.s, . ~ N.noDom)
+    ln.s <- update(ln.s, . ~ log(N.noDom))
+    qu.s <- update(qu.s, . ~ I(N.noDom^2))
     out.noDom$dAICc[out.noDom$Simulation==s] <- aictab(list("linear"=lm.s, 
                                                         "log-normal"=ln.s,
                                                         "quadratic"=qu.s), 
